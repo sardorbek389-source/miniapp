@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,Arial,sans-serif;background:#fff5f8;color:#2b2b2b;padding-bottom:90px}
+  header{padding:22px 16px 10px;text-align:center}
+  header h1{font-size:24px;color:#c2185b}
+  header p{font-size:13px;color:#888;margin-top:4px}
+  .cats{display:flex;gap:8px;overflow-x:auto;padding:8px 16px}
+  .cat{flex:none;padding:8px 16px;border-radius:20px;background:#fff;border:1px solid #f3c1d3;color:#c2185b;font-size:14px}
+  .cat.on{background:#c2185b;color:#fff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
+  .card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(194,24,91,.1)}
+  .pic{height:180px;background:#fce4ec;display:flex;align-items:center;justify-content:center;font-size:48px}
+  .pic img{width:100%;height:100%;object-fit:cover}
+  .info{padding:10px}
+  .name{font-size:14px;font-weight:600}
+  .price{color:#c2185b;font-weight:700;margin:4px 0 8px;font-size:14px}
+  .btn{width:100%;padding:9px;border:0;border-radius:10px;background:#c2185b;color:#fff;font-size:14px}
+  .bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px;background:#fff;box-shadow:0 -2px 10px rgba(0,0,0,.08);display:none}
+  .bar button{width:100%;padding:14px;border:0;border-radius:12px;background:#c2185b;color:#fff;font-size:16px;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="shop"></h1>
+  <p>Yangi kolleksiya 🌸</p>
+</header>
+<div class="cats" id="cats"></div>
+<div class="grid" id="grid"></div>
+<div class="bar" id="bar"><button onclick="order()" id="orderBtn"></button></div>
+
+<script>
+const SHOP = "Ayollar liboslari";
+const SELLER = "ssm_usa";
+
+const products = [
+  {id:1, name:"Gulli ko'ylak", price:250000, cat:"Ko'ylak", img:"kiyim1.jpg", emoji:"👗"},
+  {id:2, name:"Oqshom ko'ylagi", price:420000, cat:"Ko'ylak", img:"kiyim2.jpg", emoji:"👗"},
+  {id:3, name:"Klassik yubka", price:180000, cat:"Yubka", img:"kiyim3.jpg", emoji:"🩱"},
+  {id:4, name:"Ayollar kostyumi", price:550000, cat:"Kostyum", img:"kiyim4.jpg", emoji:"🧥"}
+];
+
+const tg = Telegram.WebApp; tg.ready(); tg.expand();
+document.getElementById("shop").innerText = SHOP;
+const cats = ["Hammasi", ...new Set(products.map(p => p.cat))];
+let cat = 0; const cart = {};
+const fmt = n => n.toLocaleString("ru-RU") + " so'm";
+
+function render(){
+  document.getElementById("cats").innerHTML = cats.map((c,i) =>
+    `<div class="cat ${i===cat?"on":""}" onclick="setCat(${i})">${c}</div>`).join("");
+  const list = products.filter(p => cat===0 || p.cat===cats[cat]);
+  document.getElementById("grid").innerHTML = list.map(p => `
+    <div class="card">
+      <div class="pic"><img src="${p.img}" onerror="this.replaceWith('${p.emoji}')"></div>
+      <div class="info">
+        <div class="name">${p.name}</div>
+        <div class="price">${fmt(p.price)}</div>
+        <button class="btn" onclick="add(${p.id})">Savatga</button>
+      </div>
+    </div>`).join("");
+  updateBar();
+}
+function setCat(i){ cat = i; render(); }
+function add(id){ cart[id] = (cart[id]||0) + 1; updateBar(); }
+function updateBar(){
+  let n = 0, sum = 0;
+  products.forEach(p => { if(cart[p.id]){ n += cart[p.id]; sum += cart[p.id]*p.price; }});
+  document.getElementById("bar").style.display = n ? "block" : "none";
+  document.getElementById("orderBtn").innerText = `Buyurtma berish (${n} ta) · ${fmt(sum)}`;
+}
+function order(){
+  let text = "Assalomu alaykum! Buyurtma bermoqchiman:\n";
+  let sum = 0;
+  products.forEach(p => { if(cart[p.id]){
+    text += `• ${p.name} x${cart[p.id]} — ${fmt(p.price*cart[p.id])}\n`;
+    sum += p.price*cart[p.id];
+  }});
+  text += `\nJami: ${fmt(sum)}`;
+  tg.openTelegramLink("https://t.me/" + SELLER + "?text=" + encodeURIComponent(text));
+}
+render();
+</script>
+</body>
+</html>
